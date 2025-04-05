@@ -117,6 +117,69 @@ body {
     background-color: #2a2b2e;
 }
 
+/* Auth Styles */
+.sidebar-footer {
+    padding: 15px 10px; /* More padding */
+    border-top: 1px solid #3a3a3c;
+}
+
+#auth-section, #user-section {
+    margin-bottom: 15px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background-color: #40414f;
+    border: 1px solid #565869;
+    border-radius: 5px;
+    color: #ececf1;
+    font-size: 0.9em;
+}
+
+.auth-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.auth-button {
+    flex: 1;
+    padding: 8px 5px;
+    background-color: #4a6fa5; /* Match header */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin: 0 3px; /* Small gap */
+}
+
+.auth-button:hover {
+    background-color: #3a5a8f;
+}
+
+#user-section p {
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    color: #8e8ea0;
+    word-break: break-all; /* Wrap long emails */
+}
+
+#logout-button {
+    width: 100%;
+    background-color: #565869; /* Different color for logout */
+}
+#logout-button:hover {
+    background-color: #6a6c7b;
+}
+
+.auth-divider {
+    border: none;
+    border-top: 1px solid #3a3a3c;
+    margin: 15px 0;
+}
+
 
 /* Chat Interface Content */
 .chat-messages {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tilly Chat</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Consider adding an icon library like Font Awesome later -->
 </head>
 <body>
@@ -24,8 +25,23 @@
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <!-- Placeholder for User Settings -->
-                <button class="settings-button">User Settings</button>
+                 <!-- Auth Section -->
+                 <div id="auth-section">
+                     <input type="email" id="auth-email" placeholder="Email" class="auth-input">
+                     <input type="password" id="auth-password" placeholder="Password" class="auth-input">
+                     <div class="auth-buttons">
+                         <button id="login-button" class="auth-button">Login</button>
+                         <button id="signup-button" class="auth-button">Sign Up</button>
+                     </div>
+                 </div>
+                 <!-- User Info/Logout Section (Initially Hidden) -->
+                 <div id="user-section" style="display: none;">
+                     <p id="user-email-display"></p>
+                     <button id="logout-button" class="auth-button">Logout</button>
+                 </div>
+                 <hr class="auth-divider">
+                 <!-- Placeholder for User Settings -->
+                 <button class="settings-button">User Settings (coming soon)</button>
             </div>
         </aside>
 
