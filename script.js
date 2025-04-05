@@ -20,6 +20,7 @@ const sendButton = document.getElementById('send-button');
 
 // App State
 let currentUser = null;
+let currentChatId = null; // Add variable to store current chat ID
 // Webhook URL (Keep existing)
 // Webhook URL from the task
 const WEBHOOK_URL = 'https://intent-seagull-tightly.ngrok-free.app/webhook/a02d4c2b-42d8-46fe-b286-6776ab37b114';
@@ -109,7 +110,81 @@ async function sendToWebhook(message) {
         console.error('Error sending/receiving webhook data:', error);
         return `Sorry, I encountered an error: ${error.message}`;
     }
+} // Add missing closing brace for sendToWebhook
+
+// --- Database Interaction Functions --- (Moved Up)
+// --- Database Interaction Functions --- (Moved Up)
+
+// Saves a message to the database
+async function saveMessage(chatId, role, content) {
+    // Ensure we have the necessary info
+    if (!currentUser || !chatId) {
+        console.error("Cannot save message: User not logged in or no active chat ID.");
+        return null; // Indicate failure
+    }
+
+    const messageData = {
+        chat_id: chatId,
+        // Only include user_id if the role is 'user'
+        user_id: role === 'user' ? currentUser.id : null,
+        role: role, // 'user' or 'assistant'
+        content: content
+    };
+
+    console.log("Saving message:", messageData);
+
+    const { data, error } = await supabase
+        .from('messages')
+        .insert([messageData])
+        .select(); // Select to get the inserted row back (optional)
+
+    if (error) {
+        console.error('Error saving message:', error);
+        alert(`Error saving message: ${error.message}`);
+        return null; // Indicate failure
+    }
+
+    console.log('Message saved successfully:', data);
+    return data ? data[0] : null; // Return the saved message object or null
 }
+
+// Gets the current chat ID, creating a new chat session if one doesn't exist for this login session.
+// TODO: Enhance this later to load existing chats.
+async function getOrCreateChat() {
+    if (!currentUser) {
+        console.error("Cannot get/create chat: User not logged in.");
+        return null;
+    }
+    // For now, always create a new chat on login/refresh after login
+    // A better approach later would be to load existing chats or the last active one.
+    console.log("Creating new chat session for user:", currentUser.id);
+    const { data, error } = await supabase
+        .from('chats')
+        .insert([{ user_id: currentUser.id, title: 'New Chat' }]) // Use a default title
+        .select('id') // Select only the id of the new chat
+        .single(); // Expect only one row back
+
+    if (error) {
+        console.error('Error creating chat:', error);
+        alert(`Error starting chat: ${error.message}`);
+        return null;
+    }
+
+    if (data && data.id) {
+        console.log("New chat created with ID:", data.id);
+        currentChatId = data.id; // Store the new chat ID
+        // TODO: Update chat history UI later
+        return currentChatId;
+    } else {
+        console.error("Failed to create chat or retrieve ID.");
+        return null;
+    }
+}
+
+// TODO: Add function loadChatHistory()
+// TODO: Add function loadMessages(chatId)
+
+// --- End Database Interaction Functions ---
 
 // Handle user input
 async function handleUserInput() {
@@ -128,12 +203,37 @@ async function handleUserInput() {
     }
     console.log("User message:", message); // Log the message being sent
 
+    // Add user message to UI first
     addMessage(message, true);
     userInput.value = '';
 
+    // Ensure we have a chat ID before proceeding
+    if (!currentChatId) {
+        console.log("No current chat ID found, attempting to get/create one...");
+        currentChatId = await getOrCreateChat(); // Try to get/create chat if missing
+        if (!currentChatId) {
+             console.error("Failed to get or create chat ID. Cannot save messages.");
+             // Maybe add an alert to the user here?
+             // alert("Error: Could not establish a chat session. Please try logging out and back in.");
+             hideLoading(); // Ensure loading is hidden if we error out here
+             return; // Stop if we can't get a chat ID
+        }
+    }
+
+    // Save the user's message
+    await saveMessage(currentChatId, 'user', message);
+
+    // Get the bot's response
     const botResponse = await sendToWebhook(message);
     hideLoading(); // Hide loading AFTER getting the response
-    addMessage(botResponse, false); // Add the actual response message
+
+    // Add bot response to UI
+    addMessage(botResponse, false);
+
+    // Save the bot's response (if not null/empty)
+    if (botResponse) {
+        await saveMessage(currentChatId, 'assistant', botResponse);
+    }
 }
 
 // --- Authentication Logic ---
@@ -177,13 +277,16 @@ async function handleSignup() {
         alert(`Signup Error: ${error.message}`);
         console.error('Signup Error:', error);
     } else {
-         // Check if email confirmation is required (depends on Supabase settings)
+        // Check if email confirmation is required (depends on Supabase settings)
+        // The condition data.user.identities.length === 0 indicates confirmation is needed
         if (data.user && data.user.identities && data.user.identities.length === 0) {
-             alert('Signup successful! Please check your email to confirm your account.');
+             alert('Signup successful! IMPORTANT: Please check your email inbox (and spam folder) for a confirmation link to activate your account before logging in.');
         } else if (data.user) {
+            // This case usually happens if email confirmation is disabled in Supabase settings
             alert('Signup successful! You are now logged in.');
         } else {
-             alert('Signup successful! Please check your email to confirm your account.'); // Default message if user object is unexpected
+             // Fallback message, should ideally not happen with successful signup
+             alert('Signup successful! Please check your email to confirm your account if required.');
         }
         // updateUserAuthState will handle UI changes via onAuthStateChange
     }
@@ -209,9 +312,11 @@ function updateUserAuthState(user) {
         authSection.style.display = 'none';
         userSection.style.display = 'block';
         userEmailDisplay.textContent = `Logged in as: ${user.email}`;
-        // TODO: Load user's chat history
-        chatMessages.innerHTML = ''; // Clear messages on login/logout for now
+        chatMessages.innerHTML = ''; // Clear messages on login/logout
         addMessage(`Welcome back!`, false); // Add welcome message
+        getOrCreateChat(); // Create/set the initial chat session ID for this login
+        // TODO: Load user's chat history list in sidebar
+        // TODO: Load messages for the current chat (or first chat)
     } else {
         authSection.style.display = 'block';
         userSection.style.display = 'none';
