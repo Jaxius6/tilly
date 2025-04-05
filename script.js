@@ -34,10 +34,11 @@ function hideLoading() {
         loadingDiv.remove();
     }
 }
-
 // Send message to webhook
 async function sendToWebhook(message) {
     showLoading();
+    console.log(`Sending to webhook: ${WEBHOOK_URL} with message: ${message}`); // Log before fetch
+
     
     try {
         const response = await fetch(WEBHOOK_URL, {
@@ -77,10 +78,15 @@ async function sendToWebhook(message) {
             responseDataText = responseText;
         }
 
+        // Log raw and parsed response for debugging
+        console.log('Raw response text:', responseText);
+        console.log('Parsed response data:', responseDataText);
+
         // Return the processed text. Loading is hidden in handleUserInput
         return responseDataText || "I received your message but didn't get a proper response.";
     } catch (error) {
         // Loading is hidden in handleUserInput
+        console.error('Error sending/receiving webhook data:', error);
         console.error('Error sending/receiving webhook data:', error);
         return `Sorry, I encountered an error: ${error.message}`;
     }
@@ -107,5 +113,7 @@ userInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Initial bot greeting
-addMessage("Hello! How can I help you today?", false);
+// Initial bot greeting - Ensure this runs after the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    addMessage("Hello! How can I help you today?", false);
+});
